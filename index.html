@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2748d1"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"></head><body>
+<title>Maluj po numerach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+:root{
+  /* Układ: jedna wąska kolumna, trzy kroki po kolei (zdjęcie, ustawienia, wynik). */
+  --bg:#f4f5f8;
+  --surface:#ffffff;
+  --fg:#161a23;
+  --muted:#596073;
+  --line:#dcdfe7;
+  --accent:#2748d1;
+  --accent-fg:#ffffff;
+  --accent-soft:#e6ebfc;
+  --danger:#b3261e;
+  --font-display:'Space Grotesk',system-ui,'Segoe UI',Roboto,sans-serif;
+  --font-body:'Inter',system-ui,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1219;--surface:#171b25;--fg:#eceef4;--muted:#9aa1b3;--line:#2a3040;
+    --accent:#8aa2ff;--accent-fg:#0b1030;--accent-soft:#1e2646;--danger:#ff8a80;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1219;--surface:#171b25;--fg:#eceef4;--muted:#9aa1b3;--line:#2a3040;
+  --accent:#8aa2ff;--accent-fg:#0b1030;--accent-soft:#1e2646;--danger:#ff8a80;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--fg);
+  font:400 16px/1.5 var(--font-body);
+  padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:4px 2px 4px}
+.top h1{font:700 1.75rem/1.15 var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.top p{margin:6px 0 0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.card h2{margin:0;font:600 1.05rem/1.2 var(--font-display);display:flex;align-items:center;gap:10px}
+.card h3{margin:0;font:600 .95rem/1.2 var(--font-display)}
+.step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:700 .85rem/1 var(--font-display)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.drop{
+  width:100%;min-height:140px;border:2px dashed var(--line);border-radius:12px;background:transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;color:var(--muted);text-align:center;
+}
+.drop:hover{border-color:var(--accent)}
+.drop strong{color:var(--fg);font-weight:600}
+.drop img{max-width:100%;max-height:260px;border-radius:8px;display:block}
+.field{display:grid;grid-template-columns:1fr auto;column-gap:12px;row-gap:8px;align-items:baseline}
+.field label{font-weight:500}
+.field output{font:600 1rem var(--font-display);color:var(--accent);font-variant-numeric:tabular-nums}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);height:32px;margin:0}
+.scale{grid-column:1/-1;display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;margin-top:-6px}
+.primary,.secondary,.dl{min-height:52px;border-radius:12px;border:1px solid transparent;font-weight:600;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%}
+.primary{background:var(--accent);color:var(--accent-fg);font-size:1.05rem}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.secondary{background:transparent;border-color:var(--line)}
+.dl{background:var(--accent-soft);color:var(--accent);justify-content:space-between;text-align:left}
+.dl small{font-weight:500;opacity:.8;font-size:.8rem}
+.progress{display:flex;flex-direction:column;gap:8px}
+.bar{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
+.status{color:var(--muted);font-size:.92rem;margin:0}
+.error{color:var(--danger);font-weight:500;margin:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--bg);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;border-radius:9px;min-height:40px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.stage{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;line-height:0}
+.stage canvas{width:100%;height:auto;display:block}
+.meta{margin:0;color:var(--muted);font-size:.88rem;font-variant-numeric:tabular-nums}
+.downloads{display:flex;flex-direction:column;gap:10px}
+.note{margin:0;padding:10px 12px;border-radius:10px;background:var(--accent-soft);font-size:.88rem}
+.legend{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.legend li{display:flex;align-items:center;gap:10px;min-width:0;font-variant-numeric:tabular-nums}
+.legend .n{width:1.6em;text-align:right;font:700 .95rem var(--font-display)}
+.legend .sw{flex:none;width:40px;height:26px;border-radius:6px;border:1px solid rgba(128,128,128,.55)}
+.legend .hx{font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.install{flex:none;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500;font-size:.9rem}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<main class="app">
+  <header class="top">
+    <div>
+      <h1>Maluj po numerach</h1>
+      <p>Zamień zdjęcie z galerii w malowankę z numerami.</p>
+    </div>
+    <button class="install" id="install" type="button" hidden>Zainstaluj</button>
+  </header>
+
+  <section class="card" aria-labelledby="h-photo">
+    <h2 id="h-photo"><span class="step">1</span>Zdjęcie</h2>
+    <input type="file" id="file" accept="image/*" hidden>
+    <button class="drop" id="pick" type="button">
+      <img id="preview" alt="Wybrane zdjęcie" hidden>
+      <span id="pickLabel"><strong>Wybierz zdjęcie z galerii</strong><br>JPG, PNG lub WebP</span>
+    </button>
+  </section>
+
+  <section class="card" aria-labelledby="h-set">
+    <h2 id="h-set"><span class="step">2</span>Ustawienia</h2>
+    <div class="field">
+      <label for="colors">Liczba kolorów</label>
+      <output id="colorsOut" for="colors">12</output>
+      <input type="range" id="colors" min="3" max="36" value="12">
+    </div>
+    <div class="field">
+      <label for="detail">Dokładność</label>
+      <output id="detailOut" for="detail">Średnia</output>
+      <input type="range" id="detail" min="1" max="5" value="3">
+      <div class="scale"><span>Mało pól</span><span>Dużo drobnych pól</span></div>
+    </div>
+    <button class="primary" id="go" type="button" disabled>Generuj</button>
+    <div class="progress" id="progress" hidden aria-live="polite">
+      <div class="bar"><i id="barFill"></i></div>
+      <p class="status" id="status"></p>
+    </div>
+    <p class="error" id="error" hidden></p>
+  </section>
+
+  <section class="card" id="result" aria-labelledby="h-res" hidden>
+    <h2 id="h-res"><span class="step">3</span>Wynik</h2>
+    <div class="seg" role="group" aria-label="Podgląd">
+      <button type="button" id="tabNum" aria-pressed="true">Z numerami</button>
+      <button type="button" id="tabCol" aria-pressed="false">Pokolorowana</button>
+    </div>
+    <div class="stage" id="stage"></div>
+    <p class="meta" id="meta"></p>
+    <div class="downloads">
+      <button class="dl" type="button" data-k="png"><span>Malowanka z numerami</span><small>PNG</small></button>
+      <button class="dl" type="button" data-k="legend"><span>Legenda kolorów</span><small>PDF</small></button>
+      <button class="dl" type="button" data-k="colored"><span>Pokolorowana malowanka</span><small>PDF</small></button>
+    </div>
+        <h3>Legenda kolorów</h3>
+    <ul class="legend" id="legend"></ul>
+  </section>
+</main>
+
+<script>
+(function(){
+'use strict';
+
+/*ENGINE_START*/
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+function mulberry32(a){
+  return function(){
+    a|=0;a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+const LIN=new Float32Array(256);
+for(let i=0;i<256;i++){const c=i/255;LIN[i]=c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}
+function fLab(t){return t>0.008856?Math.cbrt(t):7.787*t+16/116;}
+function labOf(r,g,b,out,o){
+  const R=LIN[r],G=LIN[g],B=LIN[b];
+  const x=fLab((0.4124564*R+0.3575761*G+0.1804375*B)/0.95047);
+  const y=fLab(0.2126729*R+0.7151522*G+0.0721750*B);
+  const z=fLab((0.0193339*R+0.1191920*G+0.9503041*B)/1.08883);
+  out[o]=116*y-16;out[o+1]=500*(x-y);out[o+2]=200*(y-z);
+}
+
+// Ustawienia dokładności: rozmiar roboczy, minimalny promień pola (px), siła wygładzania.
+const DETAIL=[
+  {side:520, minR:8,   blur:3,maj:2},
+  {side:700, minR:6.5, blur:2,maj:2},
+  {side:900, minR:5.2, blur:2,maj:2},
+  {side:1100,minR:4.2, blur:1,maj:1},
+  {side:1300,minR:3.5, blur:1,maj:1}
+];
+
+function blur3(rgb,W,H,passes){
+  const tmp=new Uint8Array(rgb.length);
+  for(let p=0;p<passes;p++){
+    for(let y=0;y<H;y++){
+      const row=y*W*3;
+      for(let x=0;x<W;x++){
+        const xm=(x>0?x-1:0)*3,xp=(x<W-1?x+1:W-1)*3,xc=x*3;
+        for(let c=0;c<3;c++) tmp[row+xc+c]=((rgb[row+xm+c]+rgb[row+xc+c]+rgb[row+xp+c])/3+0.5)|0;
+      }
+    }
+    for(let y=0;y<H;y++){
+      const ym=(y>0?y-1:0)*W*3,yp=(y<H-1?y+1:H-1)*W*3,yc=y*W*3;
+      for(let i=0;i<W*3;i++) rgb[yc+i]=((tmp[ym+i]+tmp[yc+i]+tmp[yp+i])/3+0.5)|0;
+    }
+  }
+}
+
+function kmeansLab(rgb,n,k,rng){
+  const step=Math.max(1,Math.floor(n/40000));
+  const m=Math.ceil(n/step);
+  const S=new Float32Array(m*3);
+  for(let j=0,i=0;j<m;j++,i+=step) labOf(rgb[i*3],rgb[i*3+1],rgb[i*3+2],S,j*3);
+  const C=new Float32Array(k*3);
+  const d2=new Float32Array(m).fill(Infinity);
+  const setCenter=(c,j)=>{
+    C[c*3]=S[j*3];C[c*3+1]=S[j*3+1];C[c*3+2]=S[j*3+2];
+    for(let i=0;i<m;i++){
+      const dx=S[i*3]-C[c*3],dy=S[i*3+1]-C[c*3+1],dz=S[i*3+2]-C[c*3+2];
+      const d=dx*dx+dy*dy+dz*dz;if(d<d2[i])d2[i]=d;
+    }
+  };
+  setCenter(0,(rng()*m)|0);
+  for(let c=1;c<k;c++){
+    let sum=0;for(let i=0;i<m;i++)sum+=d2[i];
+    let pick=(rng()*m)|0;
+    if(sum>0){let r=rng()*sum;for(let i=0;i<m;i++){r-=d2[i];if(r<=0){pick=i;break;}}}
+    setCenter(c,pick);
+  }
+  const assign=new Int32Array(m).fill(-1);
+  const sums=new Float64Array(k*3),cnt=new Int32Array(k);
+  for(let it=0;it<16;it++){
+    let moved=0;sums.fill(0);cnt.fill(0);
+    for(let i=0;i<m;i++){
+      const a=S[i*3],b=S[i*3+1],c=S[i*3+2];
+      let best=0,bd=Infinity;
+      for(let j=0;j<k;j++){
+        const dx=a-C[j*3],dy=b-C[j*3+1],dz=c-C[j*3+2];
+        const d=dx*dx+dy*dy+dz*dz;if(d<bd){bd=d;best=j;}
+      }
+      if(assign[i]!==best){assign[i]=best;moved++;}
+      sums[best*3]+=a;sums[best*3+1]+=b;sums[best*3+2]+=c;cnt[best]++;
+    }
+    for(let j=0;j<k;j++){
+      if(cnt[j]>0){C[j*3]=sums[j*3]/cnt[j];C[j*3+1]=sums[j*3+1]/cnt[j];C[j*3+2]=sums[j*3+2]/cnt[j];}
+      else{const s=(rng()*m)|0;C[j*3]=S[s*3];C[j*3+1]=S[s*3+1];C[j*3+2]=S[s*3+2];}
+    }
+    if(moved===0&&it>0)break;
+  }
+  return C;
+}
+
+function assignAll(rgb,n,C,k){
+  const labels=new Uint8Array(n);
+  const cache=new Int16Array(32768).fill(-1);
+  const lab=new Float32Array(3);
+  for(let i=0;i<n;i++){
+    const r=rgb[i*3],g=rgb[i*3+1],b=rgb[i*3+2];
+    const key=((r>>3)<<10)|((g>>3)<<5)|(b>>3);
+    let l=cache[key];
+    if(l<0){
+      labOf((r&248)|4,(g&248)|4,(b&248)|4,lab,0);
+      let bd=Infinity;l=0;
+      for(let j=0;j<k;j++){
+        const dx=lab[0]-C[j*3],dy=lab[1]-C[j*3+1],dz=lab[2]-C[j*3+2];
+        const d=dx*dx+dy*dy+dz*dz;if(d<bd){bd=d;l=j;}
+      }
+      cache[key]=l;
+    }
+    labels[i]=l;
+  }
+  return labels;
+}
+
+function majority(labels,W,H,k,passes){
+  let src=labels,dst=new Uint8Array(labels.length);
+  const cnt=new Uint8Array(k);
+  for(let p=0;p<passes;p++){
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        const i=y*W+x;
+        for(let dy=-1;dy<=1;dy++){
+          const yy=y+dy;if(yy<0||yy>=H)continue;
+          for(let dx=-1;dx<=1;dx++){
+            const xx=x+dx;if(xx<0||xx>=W)continue;
+            cnt[src[yy*W+xx]]++;
+          }
+        }
+        const cur=src[i];let best=cur,bc=cnt[cur];
+        for(let dy=-1;dy<=1;dy++){
+          const yy=y+dy;if(yy<0||yy>=H)continue;
+          for(let dx=-1;dx<=1;dx++){
+            const xx=x+dx;if(xx<0||xx>=W)continue;
+            const l=src[yy*W+xx];if(cnt[l]>bc){bc=cnt[l];best=l;}
+          }
+        }
+        dst[i]=best;
+        for(let dy=-1;dy<=1;dy++){
+          const yy=y+dy;if(yy<0||yy>=H)continue;
+          for(let dx=-1;dx<=1;dx++){
+            const xx=x+dx;if(xx<0||xx>=W)continue;
+            cnt[src[yy*W+xx]]=0;
+          }
+        }
+      }
+    }
+    const t=src;src=dst;dst=(t===labels&&p===0)?new Uint8Array(labels.length):t;
+  }
+  return src;
+}
+
+const hex2=v=>(v<16?'0':'')+v.toString(16).toUpperCase();
+
+// Średnie kolory grup, posortowane od najciemniejszego; zwraca nowe etykiety i paletę.
+function buildPalette(labels,rgb,n,k){
+  const cnt=new Float64Array(k),sr=new Float64Array(k),sg=new Float64Array(k),sb=new Float64Array(k);
+  for(let i=0;i<n;i++){const l=labels[i];cnt[l]++;sr[l]+=rgb[i*3];sg[l]+=rgb[i*3+1];sb[l]+=rgb[i*3+2];}
+  const items=[];const lab=new Float32Array(3);
+  for(let l=0;l<k;l++){
+    if(!cnt[l])continue;
+    const r=Math.round(sr[l]/cnt[l]),g=Math.round(sg[l]/cnt[l]),b=Math.round(sb[l]/cnt[l]);
+    labOf(r,g,b,lab,0);
+    items.push({old:l,r,g,b,L:lab[0]});
+  }
+  items.sort((a,b)=>a.L-b.L);
+  const map=new Uint8Array(k);
+  items.forEach((it,i)=>{map[it.old]=i;});
+  const out=new Uint8Array(n);
+  for(let i=0;i<n;i++)out[i]=map[labels[i]];
+  return{labels:out,palette:items.map(it=>({r:it.r,g:it.g,b:it.b,hex:'#'+hex2(it.r)+hex2(it.g)+hex2(it.b)}))};
+}
+
+function compact(labels,palette,n){
+  const k=palette.length,used=new Uint8Array(k);
+  for(let i=0;i<n;i++)used[labels[i]]=1;
+  const map=new Uint8Array(k),pal=[];
+  for(let l=0;l<k;l++){if(used[l]){map[l]=pal.length;pal.push(palette[l]);}}
+  if(pal.length===k)return{labels,palette};
+  const out=new Uint8Array(n);
+  for(let i=0;i<n;i++)out[i]=map[labels[i]];
+  return{labels:out,palette:pal};
+}
+
+function components(labels,W,H){
+  const n=W*H,comp=new Int32Array(n).fill(-1),order=new Int32Array(n),stack=new Int32Array(n);
+  const starts=[],lens=[];let pos=0,nc=0;
+  for(let s=0;s<n;s++){
+    if(comp[s]>=0)continue;
+    const lab=labels[s];let sp=0;stack[sp++]=s;comp[s]=nc;const start=pos;
+    while(sp>0){
+      const p=stack[--sp];order[pos++]=p;
+      const x=p%W,y=(p/W)|0;
+      if(x>0&&comp[p-1]<0&&labels[p-1]===lab){comp[p-1]=nc;stack[sp++]=p-1;}
+      if(x<W-1&&comp[p+1]<0&&labels[p+1]===lab){comp[p+1]=nc;stack[sp++]=p+1;}
+      if(y>0&&comp[p-W]<0&&labels[p-W]===lab){comp[p-W]=nc;stack[sp++]=p-W;}
+      if(y<H-1&&comp[p+W]<0&&labels[p+W]===lab){comp[p+W]=nc;stack[sp++]=p+W;}
+    }
+    starts.push(start);lens.push(pos-start);nc++;
+  }
+  return{comp,order,starts,lens,nc};
+}
+
+// Odległość (w pikselach) od najbliższej granicy pola lub krawędzi obrazu.
+function distanceField(labels,W,H){
+  const n=W*H,d=new Float32Array(n),BIG=1e9;
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const p=y*W+x,l=labels[p];
+      const edge=x===0||y===0||x===W-1||y===H-1||l!==labels[p-1]||l!==labels[p+1]||l!==labels[p-W]||l!==labels[p+W];
+      d[p]=edge?0:BIG;
+    }
+  }
+  for(let y=1;y<H;y++){
+    for(let x=1;x<W-1;x++){
+      const p=y*W+x;let v=d[p];if(v===0)continue;
+      let t=d[p-1]+3;if(t<v)v=t;
+      t=d[p-W]+3;if(t<v)v=t;
+      t=d[p-W-1]+4;if(t<v)v=t;
+      t=d[p-W+1]+4;if(t<v)v=t;
+      d[p]=v;
+    }
+  }
+  for(let y=H-2;y>=0;y--){
+    for(let x=W-2;x>=1;x--){
+      const p=y*W+x;let v=d[p];if(v===0)continue;
+      let t=d[p+1]+3;if(t<v)v=t;
+      t=d[p+W]+3;if(t<v)v=t;
+      t=d[p+W+1]+4;if(t<v)v=t;
+      t=d[p+W-1]+4;if(t<v)v=t;
+      d[p]=v;
+    }
+  }
+  for(let i=0;i<n;i++)d[i]/=3;
+  return d;
+}
+
+// Łączy pola zbyt małe na numer z sąsiadem o najbliższym kolorze.
+function simplify(labels,W,H,palette,minR){
+  const k=palette.length,minArea=3*minR*minR;
+  for(let iter=0;iter<8;iter++){
+    const C=components(labels,W,H),D=distanceField(labels,W,H),n=W*H;
+    const maxD=new Float32Array(C.nc);
+    for(let p=0;p<n;p++){const c=C.comp[p];if(D[p]>maxD[c])maxD[c]=D[p];}
+    const fail=[];
+    for(let c=0;c<C.nc;c++){if(C.lens[c]<minArea||maxD[c]<minR)fail.push(c);}
+    if(!fail.length)break;
+    fail.sort((a,b)=>C.lens[a]-C.lens[b]);
+    let changed=0;
+    const counts=new Float32Array(k);
+    for(const c of fail){
+      counts.fill(0);
+      const s=C.starts[c],e=s+C.lens[c],lab=labels[C.order[s]];
+      for(let q=s;q<e;q++){
+        const p=C.order[q],x=p%W,y=(p/W)|0;
+        let l;
+        if(x>0){l=labels[p-1];if(l!==lab)counts[l]++;}
+        if(x<W-1){l=labels[p+1];if(l!==lab)counts[l]++;}
+        if(y>0){l=labels[p-W];if(l!==lab)counts[l]++;}
+        if(y<H-1){l=labels[p+W];if(l!==lab)counts[l]++;}
+      }
+      let best=-1,bs=0;const a=palette[lab];
+      for(let l=0;l<k;l++){
+        if(!counts[l])continue;
+        const b=palette[l];
+        const dist=Math.sqrt((a.r-b.r)**2+(a.g-b.g)**2+(a.b-b.b)**2);
+        const sc=counts[l]/(dist+30);
+        if(sc>bs){bs=sc;best=l;}
+      }
+      if(best<0)continue;
+      for(let q=s;q<e;q++)labels[C.order[q]]=best;
+      changed++;
+    }
+    if(!changed)break;
+  }
+}
+
+function upsample(labels,W,H,S){
+  const Wo=W*S,Ho=H*S,out=new Uint8Array(Wo*Ho);
+  const x0=new Int32Array(Wo),x1=new Int32Array(Wo),tx=new Float32Array(Wo);
+  for(let ox=0;ox<Wo;ox++){
+    const fx=(ox+0.5)/S-0.5,i0=Math.floor(fx);
+    x0[ox]=clamp(i0,0,W-1);x1[ox]=clamp(i0+1,0,W-1);tx[ox]=fx-i0;
+  }
+  for(let oy=0;oy<Ho;oy++){
+    const fy=(oy+0.5)/S-0.5,j0=Math.floor(fy),u=fy-j0;
+    const rowA=clamp(j0,0,H-1)*W,rowB=clamp(j0+1,0,H-1)*W,o=oy*Wo;
+    for(let ox=0;ox<Wo;ox++){
+      const a=labels[rowA+x0[ox]],b=labels[rowA+x1[ox]],c=labels[rowB+x0[ox]],d=labels[rowB+x1[ox]];
+      if(a===b&&b===c&&c===d){out[o+ox]=a;continue;}
+      const t=tx[ox],wa=(1-t)*(1-u),wb=t*(1-u),wc=(1-t)*u,wd=t*u;
+      let best=a,bw=wa+(b===a?wb:0)+(c===a?wc:0)+(d===a?wd:0);
+      if(b!==a){const w=wb+(c===b?wc:0)+(d===b?wd:0);if(w>bw){bw=w;best=b;}}
+      if(c!==a&&c!==b){const w=wc+(d===c?wd:0);if(w>bw){bw=w;best=c;}}
+      if(d!==a&&d!==b&&d!==c){if(wd>bw){best=d;}}
+      out[o+ox]=best;
+    }
+  }
+  return out;
+}
+
+function buildEdges(out,Wo,Ho){
+  const edge=new Uint8Array(Wo*Ho);
+  for(let y=0;y<Ho;y++){
+    for(let x=0;x<Wo;x++){
+      const p=y*Wo+x,l=out[p];
+      if(x<Wo-1&&out[p+1]!==l){edge[p]=1;edge[p+1]=1;}
+      if(y<Ho-1&&out[p+Wo]!==l){edge[p]=1;edge[p+Wo]=1;}
+    }
+  }
+  const thick=new Uint8Array(edge);
+  for(let y=1;y<Ho;y++){
+    for(let x=1;x<Wo;x++){
+      const p=y*Wo+x;
+      if(edge[p-1]||edge[p-Wo]||edge[p-Wo-1])thick[p]=1;
+    }
+  }
+  return thick;
+}
+
+// Cały proces w etapach (generator), żeby interfejs mógł pokazywać postęp.
+function* pipeline(rgba,W,H,opts){
+  const n=W*H,cfg=DETAIL[clamp(opts.detail,1,5)-1];
+  yield{msg:'Przygotowuję zdjęcie…',p:0.05};
+  const rgb=new Uint8Array(n*3);
+  for(let i=0;i<n;i++){rgb[i*3]=rgba[i*4];rgb[i*3+1]=rgba[i*4+1];rgb[i*3+2]=rgba[i*4+2];}
+  blur3(rgb,W,H,cfg.blur);
+  yield{msg:'Wybieram kolory…',p:0.15};
+  const k=clamp(Math.min(opts.colors,n),1,64);
+  const centers=kmeansLab(rgb,n,k,mulberry32(12345));
+  yield{msg:'Przypisuję kolory do pikseli…',p:0.35};
+  let labels=assignAll(rgb,n,centers,k);
+  yield{msg:'Wygładzam obszary…',p:0.5};
+  labels=majority(labels,W,H,k,cfg.maj);
+  let pal=buildPalette(labels,rgb,n,k);
+  labels=pal.labels;
+  yield{msg:'Łączę drobne plamy…',p:0.6};
+  simplify(labels,W,H,pal.palette,cfg.minR);
+  const cp=compact(labels,pal.palette,n);
+  labels=cp.labels;const palette=cp.palette;
+  yield{msg:'Szukam miejsc na numery…',p:0.75};
+  const C=components(labels,W,H),D=distanceField(labels,W,H);
+  const best=new Float32Array(C.nc).fill(-1),bp=new Int32Array(C.nc);
+  for(let p=0;p<n;p++){const c=C.comp[p];if(D[p]>best[c]){best[c]=D[p];bp[c]=p;}}
+  const regions=[];
+  for(let c=0;c<C.nc;c++){
+    const p=bp[c];
+    regions.push({x:(p%W)+0.5,y:Math.floor(p/W)+0.5,r:best[c],l:labels[p]});
+  }
+  yield{msg:'Rysuję kontury…',p:0.85};
+  const S=Math.max(2,Math.round(2400/Math.max(W,H)));
+  const out=upsample(labels,W,H,S);
+  const Wo=W*S,Ho=H*S;
+  const edge=buildEdges(out,Wo,Ho);
+  return{W,H,S,Wo,Ho,out,edge,palette,regions,labels,minR:cfg.minR};
+}
+
+// Prosty zapis PDF: każda strona to jeden obraz JPEG na całą stronę.
+function latin1(s){const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u;}
+function buildPDF(pages){
+  const chunks=[],offs=[];let off=0;
+  const push=d=>{const u=typeof d==='string'?latin1(d):d;chunks.push(u);off+=u.length;};
+  const start=id=>{offs[id]=off;push(id+' 0 obj\n');};
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  start(1);push('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  start(2);push('<< /Type /Pages /Kids ['+pages.map((_,i)=>(3+3*i)+' 0 R').join(' ')+'] /Count '+pages.length+' >>\nendobj\n');
+  pages.forEach((p,i)=>{
+    const pg=3+3*i,ct=4+3*i,im=5+3*i;
+    start(pg);push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+p.pw+' '+p.ph+'] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+ct+' 0 R >>\nendobj\n');
+    const content='q '+p.pw+' 0 0 '+p.ph+' 0 0 cm /Im0 Do Q';
+    start(ct);push('<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream\nendobj\n');
+    start(im);push('<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+p.jpeg.length+' >>\nstream\n');
+    push(p.jpeg);push('\nendstream\nendobj\n');
+  });
+  const total=2+3*pages.length,xref=off;
+  push('xref\n0 '+(total+1)+'\n0000000000 65535 f \n');
+  for(let id=1;id<=total;id++)push(String(offs[id]).padStart(10,'0')+' 00000 n \n');
+  push('trailer\n<< /Size '+(total+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+  return new Blob(chunks,{type:'application/pdf'});
+}
+/*ENGINE_END*/
+
+/* ---------- Interfejs ---------- */
+const $=id=>document.getElementById(id);
+const fileInput=$('file'),pickBtn=$('pick'),preview=$('preview'),pickLabel=$('pickLabel');
+const colorsIn=$('colors'),colorsOut=$('colorsOut'),detailIn=$('detail'),detailOut=$('detailOut');
+const goBtn=$('go'),progress=$('progress'),barFill=$('barFill'),statusEl=$('status'),errorEl=$('error');
+const resultEl=$('result'),stage=$('stage'),metaEl=$('meta'),legendEl=$('legend');
+const tabNum=$('tabNum'),tabCol=$('tabCol');
+const DETAIL_NAMES=['Bardzo mała','Mała','Średnia','Duża','Bardzo duża'];
+
+let srcBitmap=null,baseName='malowanka',previewUrl=null,outputs=null,canvases=null,busy=false;
+const tick=()=>new Promise(r=>setTimeout(r,20));
+
+colorsIn.addEventListener('input',()=>{colorsOut.textContent=colorsIn.value;});
+detailIn.addEventListener('input',()=>{detailOut.textContent=DETAIL_NAMES[detailIn.value-1];});
+pickBtn.addEventListener('click',()=>fileInput.click());
+
+async function loadBitmap(file){
+  if(window.createImageBitmap){
+    try{return await createImageBitmap(file,{imageOrientation:'from-image'});}catch(e){}
+  }
+  const url=URL.createObjectURL(file);
+  try{
+    const img=new Image();img.src=url;await img.decode();
+    return img;
+  }finally{setTimeout(()=>URL.revokeObjectURL(url),2000);}
+}
+const bmpSize=b=>({w:b.naturalWidth||b.width,h:b.naturalHeight||b.height});
+
+fileInput.addEventListener('change',async()=>{
+  const f=fileInput.files&&fileInput.files[0];
+  if(!f)return;
+  errorEl.hidden=true;
+  try{
+    srcBitmap=await loadBitmap(f);
+  }catch(e){
+    srcBitmap=null;goBtn.disabled=true;
+    errorEl.textContent='Nie udało się wczytać tego pliku. Wybierz zdjęcie w formacie JPG, PNG lub WebP.';
+    errorEl.hidden=false;return;
+  }
+  baseName=(f.name||'malowanka').replace(/\.[^.]+$/,'')||'malowanka';
+  if(previewUrl)URL.revokeObjectURL(previewUrl);
+  previewUrl=URL.createObjectURL(f);
+  preview.src=previewUrl;preview.hidden=false;
+  pickLabel.innerHTML='<strong>Zmień zdjęcie</strong>';
+  goBtn.disabled=false;
+});
+
+function setProgress(msg,p){
+  statusEl.textContent=msg;
+  barFill.style.width=Math.round(p*100)+'%';
+}
+
+function paint(res,mode){
+  const{Wo,Ho,out,edge,palette,regions,S}=res;
+  const cv=document.createElement('canvas');cv.width=Wo;cv.height=Ho;
+  const ctx=cv.getContext('2d');
+  const img=ctx.createImageData(Wo,Ho),px=new Uint32Array(img.data.buffer);
+  const total=Wo*Ho;
+  if(mode==='num'){
+    for(let i=0;i<total;i++)px[i]=edge[i]?0xFF4A4A4A:0xFFFFFFFF;
+  }else{
+    const fill=palette.map(c=>((0xFF<<24)|(c.b<<16)|(c.g<<8)|c.r)>>>0);
+    const dark=palette.map(c=>((0xFF<<24)|((c.b*0.7|0)<<16)|((c.g*0.7|0)<<8)|(c.r*0.7|0))>>>0);
+    for(let i=0;i<total;i++){const l=out[i];px[i]=edge[i]?dark[l]:fill[l];}
+  }
+  ctx.putImageData(img,0,0);
+  if(mode==='num'){
+    const maxFs=Math.max(10,0.035*Math.max(res.W,res.H));
+    ctx.fillStyle='#3d3d3d';ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const r of regions){
+      if(r.r<2.2)continue;
+      const fs=Math.min(maxFs,Math.max(4.5,r.r*1.3))*S;
+      ctx.font='600 '+fs.toFixed(1)+'px Inter, Arial, sans-serif';
+      ctx.fillText(String(r.l+1),r.x*S,r.y*S+fs*0.04);
+    }
+  }
+  return cv;
+}
+
+function legendCanvas(palette){
+  const W=1240,H=1754,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#161a23';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.font='700 64px "Space Grotesk", Inter, Arial, sans-serif';
+  ctx.fillText('Legenda kolorów',90,150);
+  ctx.font='400 28px Inter, Arial, sans-serif';ctx.fillStyle='#596073';
+  ctx.fillText('Numer przy kolorze to numer pola na malowance.',90,205);
+  const k=palette.length,cols=k<=24?2:3,rows=Math.ceil(k/cols);
+  const top=270,bottom=H-100,rowH=Math.min(112,(bottom-top)/rows),colW=(W-180)/cols;
+  const swH=rowH*0.72;
+  palette.forEach((c,i)=>{
+    const col=Math.floor(i/rows),row=i%rows,x=90+col*colW,y=top+row*rowH;
+    ctx.fillStyle='#161a23';ctx.font='700 40px "Space Grotesk", Inter, Arial, sans-serif';
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(String(i+1),x+62,y+swH/2);
+    ctx.fillStyle=c.hex;ctx.fillRect(x+90,y,130,swH);
+    ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=2;ctx.strokeRect(x+90,y,130,swH);
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillStyle='#161a23';ctx.font='600 30px Inter, Arial, sans-serif';
+    ctx.fillText(c.hex,x+245,y+swH*0.5);
+    ctx.fillStyle='#596073';ctx.font='400 23px Inter, Arial, sans-serif';
+    ctx.fillText('RGB '+c.r+', '+c.g+', '+c.b,x+245,y+swH*0.5+30);
+  });
+  return cv;
+}
+
+function paintingPage(cv){
+  const land=cv.width>cv.height;
+  const pw=land?2339:1654,ph=land?1654:2339,m=70;
+  const page=document.createElement('canvas');page.width=pw;page.height=ph;
+  const ctx=page.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,pw,ph);
+  const sc=Math.min((pw-2*m)/cv.width,(ph-2*m)/cv.height);
+  const dw=cv.width*sc,dh=cv.height*sc,dx=(pw-dw)/2,dy=(ph-dh)/2;
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(cv,dx,dy,dw,dh);
+  ctx.strokeStyle='#bbbbbb';ctx.lineWidth=2;ctx.strokeRect(dx,dy,dw,dh);
+  return{canvas:page,pw:land?841.89:595.28,ph:land?595.28:841.89};
+}
+
+const toBlob=(cv,type,q)=>new Promise((res,rej)=>cv.toBlob(b=>b?res(b):rej(new Error('toBlob')),type,q));
+async function jpegBytes(cv){
+  const b=await toBlob(cv,'image/jpeg',0.92);
+  return new Uint8Array(await b.arrayBuffer());
+}
+async function pdfFromCanvas(cv,pw,ph){
+  const jpeg=await jpegBytes(cv);
+  return buildPDF([{jpeg,w:cv.width,h:cv.height,pw,ph}]);
+}
+
+function showView(mode){
+  const num=mode==='num';
+  tabNum.setAttribute('aria-pressed',String(num));
+  tabCol.setAttribute('aria-pressed',String(!num));
+  if(canvases)stage.replaceChildren(num?canvases.num:canvases.col);
+}
+tabNum.addEventListener('click',()=>showView('num'));
+tabCol.addEventListener('click',()=>showView('col'));
+
+function renderLegend(palette){
+  legendEl.replaceChildren();
+  palette.forEach((c,i)=>{
+    const li=document.createElement('li');
+    const n=document.createElement('span');n.className='n';n.textContent=String(i+1);
+    const sw=document.createElement('span');sw.className='sw';sw.style.background=c.hex;
+    const hx=document.createElement('span');hx.className='hx';hx.textContent=c.hex;
+    li.append(n,sw,hx);legendEl.append(li);
+  });
+}
+
+async function generate(){
+  if(busy||!srcBitmap)return;
+  busy=true;goBtn.disabled=true;errorEl.hidden=true;resultEl.hidden=true;
+  progress.hidden=false;setProgress('Wczytuję zdjęcie…',0.02);
+  await tick();
+  try{
+    const cfg=DETAIL[detailIn.value-1];
+    const{w:bw,h:bh}=bmpSize(srcBitmap);
+    const sc=Math.min(1,cfg.side/Math.max(bw,bh));
+    const W=Math.max(16,Math.round(bw*sc)),H=Math.max(16,Math.round(bh*sc));
+    const wc=document.createElement('canvas');wc.width=W;wc.height=H;
+    const wctx=wc.getContext('2d',{willReadFrequently:true});
+    wctx.fillStyle='#ffffff';wctx.fillRect(0,0,W,H);
+    wctx.imageSmoothingEnabled=true;wctx.imageSmoothingQuality='high';
+    wctx.drawImage(srcBitmap,0,0,W,H);
+    const rgba=wctx.getImageData(0,0,W,H).data;
+    const it=pipeline(rgba,W,H,{colors:parseInt(colorsIn.value,10),detail:parseInt(detailIn.value,10)});
+    let step;
+    while(!(step=it.next()).done){setProgress(step.value.msg,step.value.p);await tick();}
+    const res=step.value;
+    setProgress('Rysuję malowankę…',0.9);await tick();
+    const num=paint(res,'num'),col=paint(res,'col');
+    setProgress('Tworzę pliki PDF…',0.95);await tick();
+    const pngBlob=await toBlob(num,'image/png');
+    const lg=legendCanvas(res.palette);
+    const legendPdf=await pdfFromCanvas(lg,595.28,841.89);
+    const pg=paintingPage(col);
+    const coloredPdf=await pdfFromCanvas(pg.canvas,pg.pw,pg.ph);
+    outputs={png:pngBlob,legend:legendPdf,colored:coloredPdf,
+      names:{png:baseName+'-malowanka.png',legend:baseName+'-legenda-kolorow.pdf',colored:baseName+'-pokolorowana.pdf'}};
+    canvases={num,col};
+    renderLegend(res.palette);
+    metaEl.textContent=res.regions.length+' pól · '+res.palette.length+' kolorów · '+res.Wo+'×'+res.Ho+' px';
+    resultEl.hidden=false;showView('num');
+    setProgress('Gotowe',1);
+    setTimeout(()=>{progress.hidden=true;},600);
+    resultEl.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+    console.error(e);
+    progress.hidden=true;
+    errorEl.textContent='Nie udało się wygenerować malowanki. Spróbuj z mniejszą liczbą kolorów lub mniejszym zdjęciem.';
+    errorEl.hidden=false;
+  }finally{
+    busy=false;goBtn.disabled=!srcBitmap;
+  }
+}
+goBtn.addEventListener('click',generate);
+
+let dlCap=null;
+try{if(window.claude&&window.claude.use){window.claude.use('downloads').then(d=>{dlCap=d||null;}).catch(()=>{});}}catch(e){}
+function anchorSave(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;a.rel='noopener';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+async function saveBlob(blob,name){
+  if(dlCap){
+    try{await dlCap.save({filename:name,data:blob});return;}
+    catch(e){if(e&&e.code==='declined')return;}
+  }
+  anchorSave(blob,name);
+}
+document.querySelectorAll('.dl').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(!outputs)return;
+    const k=btn.dataset.k;
+    saveBlob(outputs[k],outputs.names[k]);
+  });
+});
+
+
+// Instalacja jako aplikacja (PWA)
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;$('install').hidden=false;
+});
+$('install').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  try{await deferredPrompt.userChoice;}catch(e){}
+  deferredPrompt=null;$('install').hidden=true;
+});
+window.addEventListener('appinstalled',()=>{$('install').hidden=true;});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  window.addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}});
+}
+
+// Hook do testów automatycznych
+window.__mpn={pipeline,buildPDF,paint,legendCanvas,paintingPage};
+})();
+</script>
+
+</body></html>
